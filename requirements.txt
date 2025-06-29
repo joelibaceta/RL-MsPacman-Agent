@@ -1,0 +1,6 @@
+stable-baselines3[extra]
+opencv-python
+matplotlib
+networkx
+tqdm
+wandb
