@@ -22,8 +22,10 @@ gym.register_envs(ale_py)
 env = gym.make('ALE/MsPacman-v5', render_mode="rgb_array")
 env = AtariWrapper(env)
 
+device = torch.device("mps")
+
 # Crea el modelo DQN
-model = DQN("CnnPolicy", env, verbose=1, tensorboard_log="./logs")
+model = DQN("CnnPolicy", env, verbose=1, tensorboard_log="./logs", device=device)
 
 # Entrena por 5M timesteps
 model.learn(total_timesteps=5_000_000, callback=WandbCallback())
