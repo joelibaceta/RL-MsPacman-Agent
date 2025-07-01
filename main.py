@@ -69,7 +69,7 @@ if __name__ == "__main__":
         gamma=0.99,  # Discount factor for future rewards
         train_freq=4,  # Train the model every 4 environment steps
         target_update_interval=1_000,  # Update the target network every 1000 training steps
-        exploration_fraction=0.4,  # Fraction of total timesteps over which ε is decayed
+        exploration_fraction=0.2,  # Fraction of total timesteps over which ε is decayed
         exploration_final_eps=0.01,  # Final value of ε after decay
         max_grad_norm=10,  # Clip gradients to prevent exploding gradients
         verbose=1,  # Enable logging
