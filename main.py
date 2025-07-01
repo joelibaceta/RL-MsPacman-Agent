@@ -100,7 +100,7 @@ checkpoint_callback = CheckpointCallback(
 callbacks = [checkpoint_callback]
 if DEBUG:
     wandb_callback = WandbCallback(
-        gradient_save_freq=1000, model_save_path="./models/", verbose=2
+        gradient_save_freq=1000, model_save_path="./models/", verbose=2, log="all",
     )
     callbacks.append(wandb_callback)
 
