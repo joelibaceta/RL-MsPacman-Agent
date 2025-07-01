@@ -12,6 +12,7 @@ from stable_baselines3.common.atari_wrappers import (
     MaxAndSkipEnv,
     EpisodicLifeEnv,
 )
+from stable_baselines3.common.callbacks import CheckpointCallback
 
 # Custom Wrappers
 from wrappers.custom_noop_reset_wrapper import CustomNoopResetWrapper
@@ -21,7 +22,7 @@ from wrappers.rescaled_reward_wrapper import AutoRescaledRewardWrapper
 # Custom CNN Feature Extractor
 from agent.rgb_cnn import RGBCNN
 
-DEBUG = False
+DEBUG = True
 
 if DEBUG:
     import wandb
@@ -45,13 +46,14 @@ gym.register_envs(ale_py)
 # observations for a convolutional neural network.
 
 # 1. Create the base MsPacman environment with RGB visual output (not RAM or grayscale)
-env = gym.make("ALE/MsPacman-v5", render_mode="rgb_array")
+env = gym.make("ALE/MsPacman-v5", render_mode=None)
 # 2. Record gameplay videos every 1000 episodes for visual inspection and debugging
-env = RecordVideo(
-    env,
-    video_folder="./videos",
-    episode_trigger=lambda episode_id: episode_id % 1000 == 0,
-)
+if not DEBUG:
+    env = RecordVideo(
+        env,
+        video_folder="./videos",
+        episode_trigger=lambda episode_id: episode_id % 1000 == 0,
+    )
 # 3. Apply a No-op reset: perform 1 to 30 random no-op actions at the beginning of each episode
 #    This introduces variability in starting states and improves generalization
 env = CustomNoopResetWrapper(env, noop_max=30)
@@ -97,7 +99,7 @@ model = DQN(
     gamma=0.99,  # Discount factor for future rewards
     train_freq=4,  # Train the model every 4 environment steps
     target_update_interval=1_000,  # Update the target network every 1000 training steps
-    exploration_fraction=0.1,  # Fraction of total timesteps over which ε is decayed
+    exploration_fraction=0.4,  # Fraction of total timesteps over which ε is decayed
     exploration_final_eps=0.01,  # Final value of ε after decay
     max_grad_norm=10,  # Clip gradients to prevent exploding gradients
     verbose=1,  # Enable logging
@@ -106,11 +108,7 @@ model = DQN(
     policy_kwargs=policy_kwargs,  # Custom CNN architecture passed to the policy
 )
 
-callback = None
-if DEBUG:
-    callback = WandbCallback(
-        gradient_save_freq=1000, model_save_path="./models/", verbose=2
-    )
+
 
 # === Training Phase ===
 # We train the agent for 5 million timesteps.
@@ -121,7 +119,23 @@ if DEBUG:
 # especially useful for early experiments, debugging, or benchmarking.
 # This is typically enough to see substantial improvement in simple environments like MsPacman,
 # while still allowing for extended training later (e.g., 10M, 20M+) if needed.
-model.learn(total_timesteps=5_000_000, callback=callback)
+
+checkpoint_callback = CheckpointCallback(
+    save_freq=100_000,              # Cada 100k timesteps
+    save_path="./checkpoints/",     # Carpeta donde se guardan
+    name_prefix="dqn_mspacman",     # Prefijo de los archivos
+    save_replay_buffer=True,        # Opcional: guarda el buffer de replay
+    save_vecnormalize=True          # Opcional: si usas normalización
+)
+
+callbacks = [checkpoint_callback]
+if DEBUG:
+    wandb_callback = WandbCallback(
+        gradient_save_freq=1000, model_save_path="./models/", verbose=2
+    )
+    callbacks.append(wandb_callback)
+
+model.learn(total_timesteps=5_000_000, callback=callbacks)
 
 # Evaluate the performance of the trained model on the current environment.
 # Runs 5 full episodes (n_eval_episodes=5) in deterministic mode (no exploration)
