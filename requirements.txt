@@ -4,3 +4,7 @@ matplotlib
 networkx
 tqdm
 wandb
+torch
+torchvision
+gymnasium[atari,other]
+numpy
