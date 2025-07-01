@@ -103,3 +103,4 @@ class MsPacmanEnvFactory:
         else:
             # Return a single non-vectorized environment
             return self._make_single_env()()
+        
