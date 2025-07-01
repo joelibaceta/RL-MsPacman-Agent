@@ -11,6 +11,7 @@ from stable_baselines3.common.monitor import Monitor
 
 from stable_baselines3.common.callbacks import CheckpointCallback
 from agent.env_factory import MsPacmanEnvFactory
+from stable_baselines3.common.vec_env import VecMonitor
 
 
 # Custom CNN Feature Extractor
@@ -40,6 +41,7 @@ gym.register_envs(ale_py)
 # By leveraging multiprocessing (each environment in its own process), we can utilize multiple CPU cores.
 # On modern machines like Apple Silicon, this allows us to take full advantage of available hardware.
 env = MsPacmanEnvFactory(vec_type="subproc", n_envs=5).build()
+env = VecMonitor(env)
 
 device = torch.device(
     "mps"
