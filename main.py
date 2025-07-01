@@ -79,7 +79,6 @@ if __name__ == "__main__":
     )
 
 
-
     # === Training Phase ===
     # We train the agent for 5 million timesteps.
     # This number is based on common practice in the literature when training DQN agents on Atari environments.
