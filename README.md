@@ -1,5 +1,9 @@
 # Entrenando a Ms. Pac-Man con Aprendizaje por Refuerzo Profundo
 
+<p align="center">
+  <img src="figs/image.png" alt="Ms-PacMan" />
+</p>
+
 Allá por los años 80, Pac-Man conquistó los arcades comiendo puntitos y escapando de fantasmas con más carisma que muchos protagonistas de películas. Pero luego llegó ella: una heroína con moño y más actitud, Ms. Pac-Man, la secuela que muchos tuvimos en el Atari 2600, donde los laberintos eran más impredecibles, los fantasmas más rebeldes, y la IA… inexistente.
 
 Hoy, cuatro décadas después, queremos ver qué tan lejos puede llegar una inteligencia artificial moderna si le damos la tarea de dominar este clásico inmortal. ¿Puede una red neuronal convolucional aprender a comerse todos los puntos, esquivar a Pinky y cazar a Inky cuando se vuelve azul?
