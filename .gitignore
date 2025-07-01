@@ -2,3 +2,5 @@ env
 logs
 wandb
 __pycache__
+.zip
+videos

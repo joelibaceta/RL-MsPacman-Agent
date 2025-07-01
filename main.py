@@ -3,21 +3,15 @@ from datetime import datetime
 
 import ale_py
 import gymnasium as gym
-from gymnasium.wrappers import RecordVideo, FrameStackObservation
+
 
 from stable_baselines3 import DQN
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.atari_wrappers import (
-    MaxAndSkipEnv,
-    EpisodicLifeEnv,
-)
-from stable_baselines3.common.callbacks import CheckpointCallback
 
-# Custom Wrappers
-from wrappers.custom_noop_reset_wrapper import CustomNoopResetWrapper
-from wrappers.crop_playfield_wrapper import CropPlayfieldWrapper
-from wrappers.rescaled_reward_wrapper import AutoRescaledRewardWrapper
+from stable_baselines3.common.callbacks import CheckpointCallback
+from agent.env_factory import MsPacmanEnvFactory
+
 
 # Custom CNN Feature Extractor
 from agent.rgb_cnn import RGBCNN
@@ -36,42 +30,16 @@ if DEBUG:
         save_code=True,
     )
 
-
 gym.register_envs(ale_py)
 
 # === Environment preprocessing pipeline for training Ms. Pac-Man agent ===
-# This setup composes a sequence of wrappers designed to standardize and optimize
-# the environment for deep reinforcement learning. Each wrapper serves a specific
-# purpose, from introducing stochasticity to reducing visual noise and formatting
-# observations for a convolutional neural network.
 
-# 1. Create the base MsPacman environment with RGB visual output (not RAM or grayscale)
-env = gym.make("ALE/MsPacman-v5", render_mode=None)
-# 2. Record gameplay videos every 1000 episodes for visual inspection and debugging
-if not DEBUG:
-    env = RecordVideo(
-        env,
-        video_folder="./videos",
-        episode_trigger=lambda episode_id: episode_id % 1000 == 0,
-    )
-# 3. Apply a No-op reset: perform 1 to 30 random no-op actions at the beginning of each episode
-#    This introduces variability in starting states and improves generalization
-env = CustomNoopResetWrapper(env, noop_max=30)
-# 4. Frame skipping and max-pooling: repeat each action 4 times and take the max of the last 2 frames
-#    This reduces computational load and helps emphasize meaningful motion
-env = MaxAndSkipEnv(env, skip=4)
-# 5. Episodic Life: treat losing a life as the end of an episode
-#    This gives denser reward signals and speeds up learning in Atari games
-env = EpisodicLifeEnv(env)
-# 6. Crop out score display and footer (non-playable regions), keeping only the playfield.
-#    Then resize to 84×84 without vertical distortion, preserving game proportions.
-env = CropPlayfieldWrapper(env, size=84)
-# 7. Stack the last 4 frames along the channel dimension (resulting in 84×84×12)
-#    This allows the agent to perceive motion and infer velocity in a memoryless environment.
-env = FrameStackObservation(env, stack_size=4)
-# 8. Smoothly rescale rewards to a continuous [-1, 1] range using tanh
-#    Preserves reward richness while avoiding overemphasis on high-magnitude events
-env = AutoRescaledRewardWrapper(env, warmup_episodes=10)
+# We use a vectorized environment with multiple parallel instances of the game (SubprocVecEnv).
+# This means the agent learns from several Ms. Pac-Man environments running at the same time,
+# each with its own random conditions. This speeds up training and improves generalization.
+# By leveraging multiprocessing (each environment in its own process), we can utilize multiple CPU cores.
+# On modern machines like Apple Silicon, this allows us to take full advantage of available hardware.
+env = MsPacmanEnvFactory(vec_type="subproc", n_envs=5).build()
 
 device = torch.device(
     "mps"
@@ -86,7 +54,6 @@ device = torch.device(
 policy_kwargs = dict(
     features_extractor_class=RGBCNN, features_extractor_kwargs=dict(features_dim=512)
 )
-
 
 model = DQN(
     policy="CnnPolicy",  # Use a convolutional neural network policy (customizable via policy_kwargs)
