@@ -4,3 +4,7 @@ wandb
 __pycache__
 .zip
 videos
+.DS_Store
+checkpoints
+checkpoints_*
+models

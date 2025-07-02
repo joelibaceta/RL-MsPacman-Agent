@@ -4,7 +4,6 @@ from datetime import datetime
 import ale_py
 import gymnasium as gym
 
-
 from stable_baselines3 import DQN
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
@@ -12,7 +11,6 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.callbacks import CheckpointCallback
 from agent.env_factory import MsPacmanEnvFactory
 from stable_baselines3.common.vec_env import VecMonitor
-
 
 # Custom CNN Feature Extractor
 from agent.rgb_cnn import RGBCNN
@@ -33,15 +31,15 @@ if __name__ == "__main__":
         )
 
     gym.register_envs(ale_py)
+    torch.set_num_threads(8)
 
     # === Environment preprocessing pipeline for training Ms. Pac-Man agent ===
-
     # We use a vectorized environment with multiple parallel instances of the game (SubprocVecEnv).
     # This means the agent learns from several Ms. Pac-Man environments running at the same time,
     # each with its own random conditions. This speeds up training and improves generalization.
     # By leveraging multiprocessing (each environment in its own process), we can utilize multiple CPU cores.
     # On modern machines like Apple Silicon, this allows us to take full advantage of available hardware.
-    env = MsPacmanEnvFactory(vec_type="subproc", n_envs=5).build()
+    env = MsPacmanEnvFactory(vec_type="subproc", n_envs=8).build()
     env = VecMonitor(env)
 
     device = torch.device(
@@ -78,7 +76,6 @@ if __name__ == "__main__":
         policy_kwargs=policy_kwargs,  # Custom CNN architecture passed to the policy
     )
 
-
     # === Training Phase ===
     # We train the agent for 5 million timesteps.
     # This number is based on common practice in the literature when training DQN agents on Atari environments.
@@ -88,12 +85,11 @@ if __name__ == "__main__":
     # especially useful for early experiments, debugging, or benchmarking.
     # This is typically enough to see substantial improvement in simple environments like MsPacman,
     # while still allowing for extended training later (e.g., 10M, 20M+) if needed.
-
     checkpoint_callback = CheckpointCallback(
         save_freq=100_000,              # Cada 100k timesteps
         save_path="./checkpoints/",     # Carpeta donde se guardan
         name_prefix="dqn_mspacman",     # Prefijo de los archivos
-        save_replay_buffer=True,        # Opcional: guarda el buffer de replay
+        save_replay_buffer=False,        # Opcional: guarda el buffer de replay
         save_vecnormalize=True          # Opcional: si usas normalización
     )
 

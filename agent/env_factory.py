@@ -6,6 +6,10 @@ import multiprocessing
 from wrappers.custom_noop_reset_wrapper import CustomNoopResetWrapper
 from wrappers.crop_playfield_wrapper import CropPlayfieldWrapper
 from wrappers.rescaled_reward_wrapper import AutoRescaledRewardWrapper
+from wrappers.death_penalty_wrapper import DeathPenaltyWrapper
+from wrappers.survival_bonus_wrapper import SurvivalBonusWrapper
+from wrappers.ghost_escape_reward_wrapper import GhostEscapeRewardWrapper
+from wrappers.movement_reward_wrapper import MovementRewardWrapper
 
 from gymnasium.wrappers import RecordVideo, FrameStackObservation
 
@@ -41,11 +45,13 @@ class MsPacmanEnvFactory:
         debug: bool = False,
         vec_type: Literal["dummy", "subproc", None] = None,
         n_envs: int = 1,
+        render_mode=None
     ):
         self.record_video = record_video
         self.debug = debug
         self.vec_type = vec_type
         self.n_envs = n_envs
+        self.render_mode = render_mode
 
     def _make_single_env(self):
         """
@@ -53,33 +59,37 @@ class MsPacmanEnvFactory:
         Useful for VecEnv initialization.
         """
         def _init():
-            # 1. Load Ms. Pac-Man with RGB rendering (used for custom preprocessing)
-            env = gym.make("ALE/MsPacman-v5", render_mode=None)
+            # Load Ms. Pac-Man with RGB rendering (used for custom preprocessing)
+            env = gym.make("ALE/MsPacman-v5", render_mode=self.render_mode)
 
-            # 2. Optionally record videos every 1000 episodes
-            if self.record_video:
-                env = RecordVideo(
-                    env,
-                    video_folder="./videos",
-                    episode_trigger=lambda episode_id: episode_id % 1000 == 0,
-                )
-
-            # 3. Apply random no-op actions at reset to introduce variability
+            # 1. Apply random no-op actions at reset to introduce initial state variability
             env = CustomNoopResetWrapper(env, noop_max=30)
 
-            # 4. Skip frames and apply max-pooling to reduce computational load and preserve motion
+            # 2. Skip frames and apply max-pooling to reduce computation and preserve motion
             env = MaxAndSkipEnv(env, skip=4)
 
-            # 5. End episodes on life loss to provide denser reward feedback
+            # 3. End episodes on life loss to provide denser reward feedback
             env = EpisodicLifeEnv(env)
 
-            # 6. Crop HUD and borders, resize to 84x84 while preserving aspect ratio
+            # 4. Explicitly penalize life loss to encourage survival behavior
+            env = DeathPenaltyWrapper(env)
+
+            # 5. Add a small bonus per step survived to promote longer episodes
+            env = SurvivalBonusWrapper(env, bonus_per_step=0.1)
+
+            # 6. Reward the agent for escaping nearby ghosts (only when not energized)
+            env = GhostEscapeRewardWrapper(env, danger_radius=3, escape_reward=0.2)
+
+            # 7. Encourage movement and penalize staying idle
+            env = MovementRewardWrapper(env, move_reward=0.05, idle_penalty=0.05)
+
+            # 8. Crop HUD and borders, then resize to 84x84 while preserving aspect ratio
             env = CropPlayfieldWrapper(env, size=84)
 
-            # 7. Stack last 4 frames to give agent a sense of motion
+            # 9. Stack the last 4 frames to give the agent a sense of motion
             env = FrameStackObservation(env, stack_size=4)
 
-            # 8. Rescale reward values to a smooth [-1, 1] range using tanh
+            # 10. Smoothly rescale all reward values to a consistent [-1, 1] range
             env = AutoRescaledRewardWrapper(env, warmup_episodes=10)
 
             return env
