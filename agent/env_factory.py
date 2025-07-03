@@ -75,13 +75,13 @@ class MsPacmanEnvFactory:
             env = DeathPenaltyWrapper(env)
 
             # 5. Add a small bonus per step survived to promote longer episodes
-            env = SurvivalBonusWrapper(env, bonus_per_step=0.1)
+            # env = SurvivalBonusWrapper(env, bonus_per_step=0.1)
 
             # 6. Reward the agent for escaping nearby ghosts (only when not energized)
-            env = GhostEscapeRewardWrapper(env, danger_radius=3, escape_reward=0.2)
+            env = GhostEscapeRewardWrapper(env, danger_radius=3, escape_reward=0.3)
 
             # 7. Encourage movement and penalize staying idle
-            env = MovementRewardWrapper(env, move_reward=0.05, idle_penalty=0.05)
+            env = MovementRewardWrapper(env, move_reward=0.1, idle_penalty=0.2)
 
             # 8. Crop HUD and borders, then resize to 84x84 while preserving aspect ratio
             env = CropPlayfieldWrapper(env, size=84)

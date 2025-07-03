@@ -12,8 +12,14 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 from agent.env_factory import MsPacmanEnvFactory
 from stable_baselines3.common.vec_env import VecMonitor
 
+from stable_baselines3.common.utils import get_schedule_fn
+
+# DEFAULT CNN
+
+
 # Custom CNN Feature Extractor
 from agent.rgb_cnn import RGBCNN
+from agent.rgb_rnn import RGBCNNRNN
 
 if __name__ == "__main__":
     DEBUG = True
@@ -31,7 +37,7 @@ if __name__ == "__main__":
         )
 
     gym.register_envs(ale_py)
-    torch.set_num_threads(8)
+    torch.set_num_threads(12)
 
     # === Environment preprocessing pipeline for training Ms. Pac-Man agent ===
     # We use a vectorized environment with multiple parallel instances of the game (SubprocVecEnv).
@@ -39,7 +45,7 @@ if __name__ == "__main__":
     # each with its own random conditions. This speeds up training and improves generalization.
     # By leveraging multiprocessing (each environment in its own process), we can utilize multiple CPU cores.
     # On modern machines like Apple Silicon, this allows us to take full advantage of available hardware.
-    env = MsPacmanEnvFactory(vec_type="subproc", n_envs=8).build()
+    env = MsPacmanEnvFactory(vec_type="subproc", n_envs=12).build()
     env = VecMonitor(env)
 
     device = torch.device(
@@ -56,10 +62,12 @@ if __name__ == "__main__":
         features_extractor_class=RGBCNN, features_extractor_kwargs=dict(features_dim=512)
     )
 
+    lr_schedule = get_schedule_fn(1e-4) 
+
     model = DQN(
         policy="CnnPolicy",  # Use a convolutional neural network policy (customizable via policy_kwargs)
         env=env,  # Preprocessed Atari environment
-        learning_rate=1e-4,  # Learning rate (higher than the SB3 default of 2.5e-4 is *not* true here, default is 1e-4)
+        learning_rate=lr_schedule,  # Learning rate (higher than the SB3 default of 2.5e-4 is *not* true here, default is 1e-4)
         buffer_size=100_000,  # Replay buffer size: number of transitions to store
         learning_starts=10_000,  # Delays training until 10k steps have been collected
         batch_size=64,  # Mini-batch size sampled from the replay buffer
@@ -100,7 +108,7 @@ if __name__ == "__main__":
         )
         callbacks.append(wandb_callback)
 
-    model.learn(total_timesteps=5_000_000, callback=callbacks)
+    model.learn(total_timesteps=10_000_000, callback=callbacks)
 
     # Evaluate the performance of the trained model on the current environment.
     # Runs 5 full episodes (n_eval_episodes=5) in deterministic mode (no exploration)
