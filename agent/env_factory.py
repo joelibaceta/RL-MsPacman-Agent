@@ -68,29 +68,29 @@ class MsPacmanEnvFactory:
             # 2. Skip frames and apply max-pooling to reduce computation and preserve motion
             env = MaxAndSkipEnv(env, skip=4)
 
-            # 3. End episodes on life loss to provide denser reward feedback
-            env = EpisodicLifeEnv(env)
-
-            # 4. Explicitly penalize life loss to encourage survival behavior
-            env = DeathPenaltyWrapper(env)
-
-            # 5. Add a small bonus per step survived to promote longer episodes
-            # env = SurvivalBonusWrapper(env, bonus_per_step=0.1)
-
-            # 6. Reward the agent for escaping nearby ghosts (only when not energized)
-            env = GhostEscapeRewardWrapper(env, danger_radius=3, escape_reward=0.3)
-
-            # 7. Encourage movement and penalize staying idle
-            env = MovementRewardWrapper(env, move_reward=0.1, idle_penalty=0.2)
-
             # 8. Crop HUD and borders, then resize to 84x84 while preserving aspect ratio
             env = CropPlayfieldWrapper(env, size=84)
 
             # 9. Stack the last 4 frames to give the agent a sense of motion
             env = FrameStackObservation(env, stack_size=4)
 
+            # 4. Explicitly penalize life loss to encourage survival behavior
+            env = DeathPenaltyWrapper(env)
+
             # 10. Smoothly rescale all reward values to a consistent [-1, 1] range
             env = AutoRescaledRewardWrapper(env, warmup_episodes=10)
+
+            # 5. Add a small bonus per step survived to promote longer episodes
+            env = SurvivalBonusWrapper(env, bonus_per_step=0.05)
+
+            # 6. Reward the agent for escaping nearby ghosts (only when not energized)
+            env = GhostEscapeRewardWrapper(env, danger_radius=3, escape_reward=0.1)
+
+            # 7. Encourage movement and penalize staying idle
+            env = MovementRewardWrapper(env, move_reward=0.1, idle_penalty=0.1)
+
+            # 3. End episodes on life loss to provide denser reward feedback
+            env = EpisodicLifeEnv(env)
 
             return env
 

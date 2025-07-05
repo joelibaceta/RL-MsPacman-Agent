@@ -13,6 +13,7 @@ from agent.env_factory import MsPacmanEnvFactory
 from stable_baselines3.common.vec_env import VecMonitor
 
 from stable_baselines3.common.utils import get_schedule_fn
+from callbacks.unlearning_callback import UnlearningCallback
 
 # DEFAULT CNN
 
@@ -37,7 +38,7 @@ if __name__ == "__main__":
         )
 
     gym.register_envs(ale_py)
-    torch.set_num_threads(12)
+    torch.set_num_threads(4)
 
     # === Environment preprocessing pipeline for training Ms. Pac-Man agent ===
     # We use a vectorized environment with multiple parallel instances of the game (SubprocVecEnv).
@@ -45,7 +46,7 @@ if __name__ == "__main__":
     # each with its own random conditions. This speeds up training and improves generalization.
     # By leveraging multiprocessing (each environment in its own process), we can utilize multiple CPU cores.
     # On modern machines like Apple Silicon, this allows us to take full advantage of available hardware.
-    env = MsPacmanEnvFactory(vec_type="subproc", n_envs=12).build()
+    env = MsPacmanEnvFactory(vec_type="subproc", n_envs=4).build()
     env = VecMonitor(env)
 
     device = torch.device(
@@ -76,7 +77,7 @@ if __name__ == "__main__":
         train_freq=4,  # Train the model every 4 environment steps
         target_update_interval=1_000,  # Update the target network every 1000 training steps
         exploration_fraction=0.2,  # Fraction of total timesteps over which ε is decayed
-        exploration_final_eps=0.01,  # Final value of ε after decay
+        exploration_final_eps=0.01,   # Final value of ε after decay
         max_grad_norm=10,  # Clip gradients to prevent exploding gradients
         verbose=1,  # Enable logging
         tensorboard_log="./logs",  # Path to save TensorBoard logs
@@ -101,12 +102,16 @@ if __name__ == "__main__":
         save_vecnormalize=True          # Opcional: si usas normalización
     )
 
-    callbacks = [checkpoint_callback]
+    unlearning_callback = UnlearningCallback()
+    callbacks = [checkpoint_callback, unlearning_callback]
+
     if DEBUG:
         wandb_callback = WandbCallback(
             gradient_save_freq=1000, model_save_path="./models/", verbose=2, log="all",
         )
         callbacks.append(wandb_callback)
+
+
 
     model.learn(total_timesteps=10_000_000, callback=callbacks)
 

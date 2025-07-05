@@ -6,10 +6,11 @@ class GhostEscapeRewardWrapper(gym.RewardWrapper):
     Da recompensa si el agente se aleja de fantasmas que estaban peligrosamente cerca,
     solo si NO está energizado (es decir, no puede comerse a los fantasmas).
     """
-    def __init__(self, env, danger_radius=3, escape_reward=0.2):
+    def __init__(self, env, danger_radius=3, escape_reward=0.2, chase_reward=0.1):
         super().__init__(env)
         self.danger_radius = danger_radius
         self.escape_reward = escape_reward
+        self.chase_reward = chase_reward
         self.prev_agent_pos = None
         self.prev_ghost_positions = []
 
@@ -29,7 +30,12 @@ class GhostEscapeRewardWrapper(gym.RewardWrapper):
             for ghost in ghost_positions:
                 if self._is_close(self.prev_agent_pos, ghost):
                     if self._distance(agent_pos, ghost) > self._distance(self.prev_agent_pos, ghost):
-                        bonus += self.escape_reward  # Se alejó
+                        bonus += self.escape_reward  # Se alejó de un fantasma peligroso
+        else:
+            for ghost in ghost_positions:
+                if self._is_close(self.prev_agent_pos, ghost):
+                    if self._distance(agent_pos, ghost) < self._distance(self.prev_agent_pos, ghost):
+                        bonus += self.chase_reward  # se acercó a un fantasma comestible
 
         # Actualizar estado previo
         self.prev_agent_pos = agent_pos
