@@ -10,6 +10,7 @@ from wrappers.death_penalty_wrapper import DeathPenaltyWrapper
 from wrappers.survival_bonus_wrapper import SurvivalBonusWrapper
 from wrappers.ghost_escape_reward_wrapper import GhostEscapeRewardWrapper
 from wrappers.movement_reward_wrapper import MovementRewardWrapper
+from wrappers.random_initial_movement_wrapper import RandomInitialMovementWrapper
 
 from gymnasium.wrappers import RecordVideo, FrameStackObservation
 
@@ -62,9 +63,11 @@ class MsPacmanEnvFactory:
             # Load Ms. Pac-Man with RGB rendering (used for custom preprocessing)
             env = gym.make("ALE/MsPacman-v5", render_mode=self.render_mode)
 
-            # 1. Apply random no-op actions at reset to introduce initial state variability
-            env = CustomNoopResetWrapper(env, noop_max=30)
 
+            env = RandomInitialMovementWrapper(env, min_steps=30, max_steps=200, safe_retry=True)
+            # 1. Apply random no-op actions at reset to introduce initial state variability
+            # env = CustomNoopResetWrapper(env, noop_max=30)
+            
             # 2. Skip frames and apply max-pooling to reduce computation and preserve motion
             env = MaxAndSkipEnv(env, skip=4)
 

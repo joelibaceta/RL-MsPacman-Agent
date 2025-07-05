@@ -21,15 +21,17 @@ from callbacks.unlearning_callback import UnlearningCallback
 # Custom CNN Feature Extractor
 from agent.rgb_cnn import RGBCNN
 from agent.rgb_rnn import RGBCNNRNN
+from agent.rgb_flow_cnn import RGBFlowCNN
 
 if __name__ == "__main__":
-    DEBUG = True
+    DEBUG = False
 
     if DEBUG:
         import wandb
         from wandb.integration.sb3 import WandbCallback
 
         wandb.init(
+            entity="joelibaceta",
             project="pacman-rl",
             config={"algo": "DQN", "env": "MsPacman-v5"},
             sync_tensorboard=True,
@@ -46,7 +48,7 @@ if __name__ == "__main__":
     # each with its own random conditions. This speeds up training and improves generalization.
     # By leveraging multiprocessing (each environment in its own process), we can utilize multiple CPU cores.
     # On modern machines like Apple Silicon, this allows us to take full advantage of available hardware.
-    env = MsPacmanEnvFactory(vec_type="subproc", n_envs=4).build()
+    env = MsPacmanEnvFactory(vec_type="subproc", n_envs=1).build()
     env = VecMonitor(env)
 
     device = torch.device(
@@ -60,7 +62,7 @@ if __name__ == "__main__":
 
     # Custom policy configuration: Specifies a custom feature extractor (RGBCNN) to be used by the DQN policy.
     policy_kwargs = dict(
-        features_extractor_class=RGBCNN, features_extractor_kwargs=dict(features_dim=512)
+        features_extractor_class=RGBFlowCNN, features_extractor_kwargs=dict(features_dim=512)
     )
 
     lr_schedule = get_schedule_fn(1e-4) 
