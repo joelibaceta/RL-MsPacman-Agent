@@ -11,6 +11,7 @@ from wrappers.survival_bonus_wrapper import SurvivalBonusWrapper
 from wrappers.ghost_escape_reward_wrapper import GhostEscapeRewardWrapper
 from wrappers.movement_reward_wrapper import MovementRewardWrapper
 from wrappers.random_initial_movement_wrapper import RandomInitialMovementWrapper
+from wrappers.save_game_wrapper import SaveGameWrapper
 
 from gymnasium.wrappers import RecordVideo, FrameStackObservation
 
@@ -63,11 +64,13 @@ class MsPacmanEnvFactory:
             # Load Ms. Pac-Man with RGB rendering (used for custom preprocessing)
             env = gym.make("ALE/MsPacman-v5", render_mode=self.render_mode)
 
+            env = SaveGameWrapper(env, max_saves=10, resume_prob=0.2, pre_save_steps=10)
 
-            env = RandomInitialMovementWrapper(env, min_steps=30, max_steps=200, safe_retry=True)
+            env = RandomInitialMovementWrapper(env, min_steps=30, max_steps=50, safe_retry=True)
             # 1. Apply random no-op actions at reset to introduce initial state variability
             # env = CustomNoopResetWrapper(env, noop_max=30)
-            
+
+           
             # 2. Skip frames and apply max-pooling to reduce computation and preserve motion
             env = MaxAndSkipEnv(env, skip=4)
 
@@ -87,7 +90,7 @@ class MsPacmanEnvFactory:
             env = SurvivalBonusWrapper(env, bonus_per_step=0.05)
 
             # 6. Reward the agent for escaping nearby ghosts (only when not energized)
-            env = GhostEscapeRewardWrapper(env, danger_radius=3, escape_reward=0.1)
+            env = GhostEscapeRewardWrapper(env, danger_radius=16, escape_reward=0.2, chase_reward=0.1)
 
             # 7. Encourage movement and penalize staying idle
             env = MovementRewardWrapper(env, move_reward=0.1, idle_penalty=0.1)
